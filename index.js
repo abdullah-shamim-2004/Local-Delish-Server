@@ -9,9 +9,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-
 const uri = process.env.MONGODB_URL;
-
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -27,7 +25,27 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     //Create database collection
-    
+    const db = client.db("Local-Delish-DB");
+    const reviewCollection = db.collection("reviews");
+
+    //create a review
+    app.post("/reviews", async (req, res) => {
+      try {
+        const review = await reviewCollection.insertOne(req.body);
+        res.status(201).json(review);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+    //Find or Get all review
+    app.get("/reviews", async (req, res) => {
+      try {
+        const result = await reviewCollection.find().toArray();
+        res.status(201).json(result);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
