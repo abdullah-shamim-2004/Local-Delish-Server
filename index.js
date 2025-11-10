@@ -40,7 +40,15 @@ async function run() {
     //Find or Get all review
     app.get("/reviews", async (req, res) => {
       try {
-        const result = await reviewCollection.find().toArray();
+        const { limit, sort, search, email } = req.query;
+        let query = {};
+        if (email) {
+          query = { userEmail: email };
+        }
+        const result = await reviewCollection
+          .find(query)
+          .sort({ createdAt: -1 })
+          .toArray();
         res.status(201).json(result);
       } catch (err) {
         res.status(500).json({ error: err.message });
