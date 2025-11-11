@@ -45,6 +45,9 @@ async function run() {
         if (email) {
           query = { userEmail: email };
         }
+        if (search) {
+          query.foodName = { $regex: search, $options: "i" }; 
+        }
         const result = await reviewCollection
           .find(query)
           .sort({ createdAt: -1 })
