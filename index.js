@@ -1,7 +1,7 @@
 require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -57,13 +57,45 @@ async function run() {
 
     // Get a single review
     app.get("/reviews/:id", async (req, res) => {
-      const { id } = req.params;
-      const objectId = new objectId(id);
-      const result = await reviewCollection.findOne({ _id: objectId });
-      res.send({
-        success: true,
-        result,
-      });
+      const reviewId = req.params.id;
+
+      try {
+        const review = await reviewCollection.findOne({
+          _id: new ObjectId(reviewId),
+        });
+
+        if (!review) {
+          return res.status(404).json({ message: "Review not found" });
+        }
+        res.status(200).json({
+          success: true,
+          review,
+        });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          error: err.message,
+        });
+      }
+    });
+    // Delete my review
+    app.delete("/reviews/:id", async (req, res) => {
+      try {
+        const result = await reviewCollection.deleteOne({
+          _id: new ObjectId(req.params.id),
+        });
+
+        if (result.deletedCount === 0) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Review not found" });
+        }
+        res
+          .status(200)
+          .json({ success: true, message: "Review deleted successfully" });
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
     });
 
     // Send a ping to confirm a successful connection
