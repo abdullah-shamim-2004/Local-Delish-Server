@@ -98,6 +98,27 @@ async function run() {
       }
     });
 
+    //Update my review
+    app.put("/reviews/:id", async (req, res) => {
+      const { id } = req.params;
+      const updateReview = req.body;
+      try {
+        const result = await reviewCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updateReview }
+        );
+        if (result.modifiedCount > 0) {
+          res.json({ success: true, message: "Review update successfully." });
+        } else {
+          res
+            .status(404)
+            .json({ success: false, message: "Review not found!" });
+        }
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
