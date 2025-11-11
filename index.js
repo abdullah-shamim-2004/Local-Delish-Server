@@ -55,6 +55,17 @@ async function run() {
       }
     });
 
+    // Get a single review
+    app.get("/reviews/:id", async (req, res) => {
+      const { id } = req.params;
+      const objectId = new objectId(id);
+      const result = await reviewCollection.findOne({ _id: objectId });
+      res.send({
+        success: true,
+        result,
+      });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
