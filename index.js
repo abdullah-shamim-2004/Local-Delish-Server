@@ -27,6 +27,7 @@ async function run() {
     //Create database collection
     const db = client.db("Local-Delish-DB");
     const reviewCollection = db.collection("reviews");
+    const favoriteCollection = db.collection("favorites");
 
     //create a review
     app.post("/reviews", async (req, res) => {
@@ -37,7 +38,32 @@ async function run() {
         res.status(500).json({ error: err.message });
       }
     });
-    //Find or Get all review
+
+    //Add favorite review in favoritecollection
+    app.post("/my-favorites", async (req, res) => {
+      try {
+        const favorite = await favoriteCollection.insertOne(req.body);
+        res.status(201).json(favorite);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+    // Get favorites review
+    app.get("/my-favorites", async (req, res) => {
+      try {
+        const { email } = req.query;
+        let query = {};
+        if (email) {
+          query = { userEmail: email };
+        }
+        const result = await favoriteCollection.find(query).toArray();
+        res.status(201).json(result);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    //Find or Get review
     app.get("/reviews", async (req, res) => {
       try {
         const { limit, sort, search, email } = req.query;
@@ -46,12 +72,13 @@ async function run() {
           query = { userEmail: email };
         }
         if (search) {
-          query.foodName = { $regex: search, $options: "i" }; 
+          query.foodName = { $regex: search, $options: "i" };
         }
-        const result = await reviewCollection
-          .find(query)
-          .sort({ createdAt: -1 })
-          .toArray();
+        let cursor = reviewCollection.find(query);
+        if (limit) {
+          cursor = cursor.limit(parseInt(limit));
+        }
+        const result = await cursor.toArray();
         res.status(201).json(result);
       } catch (err) {
         res.status(500).json({ error: err.message });
