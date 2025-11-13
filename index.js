@@ -41,13 +41,22 @@ async function run() {
 
     //Add favorite review in favoritecollection
     app.post("/my-favorites", async (req, res) => {
+      const { foodId } = req.body;
       try {
-        const favorite = await favoriteCollection.insertOne(req.body);
-        res.status(201).json(favorite);
+        const existingFavorite = await favoriteCollection.findOne({ foodId });
+        if (!existingFavorite) {
+          const favorite = await favoriteCollection.insertOne(req.body);
+          return res.status(201).json(favorite);
+        } else {
+          return res.status(200).json({
+            message: "This review already exist in favorite collection",
+          });
+        }
       } catch (err) {
         res.status(500).json({ error: err.message });
       }
     });
+
     // Get favorites review
     app.get("/my-favorites", async (req, res) => {
       try {
@@ -77,6 +86,9 @@ async function run() {
         let cursor = reviewCollection.find(query);
         if (limit) {
           cursor = cursor.limit(parseInt(limit));
+        }
+        if (sort === "top") {
+          cursor = cursor.sort({ rating: -1 });
         }
         const result = await cursor.toArray();
         res.status(201).json(result);
