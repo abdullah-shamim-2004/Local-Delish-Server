@@ -23,7 +23,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     //Create database collection
     const db = client.db("Local-Delish-DB");
     const reviewCollection = db.collection("reviews");
@@ -41,9 +41,12 @@ async function run() {
 
     //Add favorite review in favoritecollection
     app.post("/my-favorites", async (req, res) => {
-      const { foodId } = req.body;
+      const { foodId, userEmail } = req.body;
       try {
-        const existingFavorite = await favoriteCollection.findOne({ foodId });
+        const existingFavorite = await favoriteCollection.findOne({
+          foodId,
+          userEmail,
+        });
         if (!existingFavorite) {
           const favorite = await favoriteCollection.insertOne(req.body);
           return res.status(201).json(favorite);
@@ -69,6 +72,24 @@ async function run() {
         res.status(201).json(result);
       } catch (err) {
         res.status(500).json({ error: err.message });
+      }
+    });
+    // delete my favorite
+    app.delete("/my-favorites/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        if (!id) {
+          res.status(404).send("id not found!");
+        }
+        const result = await favoriteCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.status(200).json({
+          success: true,
+          result,
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
       }
     });
 
@@ -160,9 +181,24 @@ async function run() {
         res.status(500).json({ success: false, error: err.message });
       }
     });
+    app.get("/data-analytics", async (req, res) => {
+      try {
+        const totalReviews = await reviewCollection.countDocuments();
+        const totalFavorites = await favoriteCollection.countDocuments();
+        res.status(200).send({
+          totalReviews,
+          totalFavorites,
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message,
+        });
+      }
+    });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
