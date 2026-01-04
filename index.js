@@ -96,23 +96,63 @@ async function run() {
     //Find or Get review
     app.get("/reviews", async (req, res) => {
       try {
-        const { limit, sort, search, email } = req.query;
+        const {
+          limit,
+          page = 1,
+          sort,
+          search,
+          email,
+          rating,
+          location,
+        } = req.query;
+
         let query = {};
+
+        // My Reviews
         if (email) {
-          query = { userEmail: email };
+          query.userEmail = email;
         }
+
+        //  Search
         if (search) {
-          query.foodName = { $regex: search, $options: "i" };
+          query.$or = [
+            { foodName: { $regex: search, $options: "i" } },
+            { restaurantName: { $regex: search, $options: "i" } },
+          ];
         }
-        let cursor = reviewCollection.find(query);
-        if (limit) {
-          cursor = cursor.limit(parseInt(limit));
+
+        // Rating filter
+        if (rating) {
+          query.rating = { $gte: Number(rating) };
         }
-        if (sort === "top") {
-          cursor = cursor.sort({ rating: -1 });
+
+        // Location filter
+        if (location) {
+          query.location = location;
         }
+
+        //  Sorting logic
+        let sortOption = {};
+        if (sort === "top") sortOption.rating = -1;
+        if (sort === "newest") sortOption.createdAt = -1;
+        if (sort === "oldest") sortOption.createdAt = 1;
+
+        const cursor = reviewCollection
+          .find(query)
+          .sort(sortOption)
+          .skip((page - 1) * limit)
+          .limit(Number(limit));
+
         const result = await cursor.toArray();
-        res.status(201).json(result);
+        const total = await reviewCollection.countDocuments(query);
+
+        res.status(200).json({
+          total,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil(total / limit),
+          reviews: result,
+        });
       } catch (err) {
         res.status(500).json({ error: err.message });
       }
